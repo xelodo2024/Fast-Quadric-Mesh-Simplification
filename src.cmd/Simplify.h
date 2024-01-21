@@ -828,6 +828,58 @@ namespace Simplify
 		return str;
 	}
 
+
+void xSetTrianglesPointer(size_t V_stride, const void *V_ptr,
+                          size_t UV_stride, const void *UV_ptr,
+                          size_t count, const void *indices,
+                          bool process_uv=false)
+{
+    vertices.clear();
+    triangles.clear();
+    unsigned int * indices_ = (unsigned int *)indices;    // Cast indices to a pointer to an array of 32-bit integers
+    size_t indice_ = 0;                     // Initialize the max index to 0
+    for (size_t i = 0; i < count; i++ )    // Loop over each index
+    {
+        if (indice_ < indices_[i])          // If the current max index is less than the current index...
+        {
+            indice_ = indices_[i];          // ... set the max index to the current index
+        }
+    }
+
+    const unsigned char * ptrVertex = (const unsigned char *)(V_ptr);
+    const unsigned char * ptrTexCoord = reinterpret_cast<const unsigned char *>( UV_ptr);
+    for (size_t i = 0; i  < indice_; i++)
+    {
+        size_t rowOffsetVertex = i * V_stride;
+        Vertex v;
+        const float * floatBaseVertex = (const float *)(ptrVertex+rowOffsetVertex);
+        v.p=vec3f(floatBaseVertex[0],floatBaseVertex[1],floatBaseVertex[2]);
+        vertices.push_back(v);
+    }
+    for (size_t i = 0; i  < count; i+=3)
+    {
+        //size_t rowOffsetVertex = i * V_stride;
+
+        Triangle t;
+        t.v[0]=indices_[i+0];
+        t.v[1]=indices_[i+1];
+        t.attr  = 0;
+        t.v[2]=indices_[i+2];
+        if ( process_uv  )
+        {
+            for (size_t j = 0; j  < 3; j++)
+            {
+                size_t rowOffsetTexCoord = indices_[i+j] * UV_stride;
+                const float * floatBaseTexCoord = (const float *)(ptrTexCoord+rowOffsetTexCoord);
+                t.uvs[j]=vec3f(floatBaseTexCoord[0], floatBaseTexCoord[1], 0.0);
+            }
+            t.attr |= TEXCOORD;
+        }
+
+
+        triangles.push_back(t);
+    }
+}
 	//Option : Load OBJ
 	void load_obj(const char* filename, bool process_uv=false){
 		vertices.clear();
